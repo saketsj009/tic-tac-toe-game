@@ -1,95 +1,102 @@
-const board = document.getElementById("board");
-        const winnerText = document.getElementById("winner");
-        let currentPlayer = "X";
-        let boardState = ["", "", "", "", "", "", "", "", ""];
-        const beepSound = document.getElementById("beepSound");
-        let isSoundMuted = false;
+let boxes = document.querySelectorAll(".box");
+let resetBtn = document.querySelector("#reset-btn");
+let newGameBtn = document.querySelector("#new-btn");
+let msgContainer = document.querySelector(".msg-container");
+let msg = document.querySelector("#msg");
+let beepSound = document.getElementById("beep"); // Audio element for beep sound
 
-        // Initialize the game board
-        for (let i = 0; i < 9; i++) {
-            const cell = document.createElement("div");
-            cell.classList.add("cell");
-            cell.dataset.index = i;
-            cell.addEventListener("click", () => makeMove(i));
-            board.appendChild(cell);
-        }
+let turnO = true; //playerX, playerO
+let count = 0; //To Track Draw
 
-        function makeMove(index) {
-            if (boardState[index] === "" && !isGameOver()) {
-                boardState[index] = currentPlayer;
-                const cell = board.children[index];
-                cell.textContent = currentPlayer;
-                playBeepSound(); // Play beep sound when X or O is placed
-                if (currentPlayer === "X") {
-                    currentPlayer = "O";
-                } else {
-                    currentPlayer = "X";
-                }
-                const winningCombination = checkWinner();
-                if (winningCombination) {
-                    highlightWinningPositions(winningCombination);
-                }
-            }
-        }
+const winPatterns = [
+  [0, 1, 2],
+  [0, 3, 6],
+  [0, 4, 8],
+  [1, 4, 7],
+  [2, 5, 8],
+  [2, 4, 6],
+  [3, 4, 5],
+  [6, 7, 8],
+];
 
-        function checkWinner() {
-            const winPatterns = [
-                [0, 1, 2],
-                [3, 4, 5],
-                [6, 7, 8],
-                [0, 3, 6],
-                [1, 4, 7],
-                [2, 5, 8],
-                [0, 4, 8],
-                [2, 4, 6]
-            ];
+const resetGame = () => {
+  turnO = true;
+  count = 0;
+  enableBoxes();
+  msgContainer.classList.add("hide");
+};
 
-            for (const pattern of winPatterns) {
-                const [a, b, c] = pattern;
-                if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
-                    winnerText.textContent = `${boardState[a]} wins!`;
-                    return pattern;
-                }
-            }
+boxes.forEach((box) => {
+  box.addEventListener("click", () => {
+    beepSound.currentTime = 0;
+    beepSound.play();
 
-            if (!boardState.includes("")) {
-                winnerText.textContent = "It's a draw!";
-            }
-            return null;
-        }
+    if (turnO) {
+      //playerO
+      box.innerText = "O";
+      turnO = false;
+    } else {
+      //playerX
+      box.innerText = "X";
+      turnO = true;
+    }
+    box.disabled = true;
+    count++;
 
-        function isGameOver() {
-            return winnerText.textContent !== "";
-        }
+    let isWinner = checkWinner();
 
-        function resetGame() {
-            for (let i = 0; i < 9; i++) {
-                const cell = board.children[i];
-                cell.textContent = "";
-                cell.classList.remove("highlight"); // Remove the highlight class
-            }
-            boardState = ["", "", "", "", "", "", "", "", ""];
-            winnerText.textContent = "";
-            currentPlayer = "X";
-        }
+    if (count === 9 && !isWinner) {
+      gameDraw();
+    }
+  });
+});
 
-        // Function to play the beep sound
-        function playBeepSound() {
-            if (!isSoundMuted) {
-                beepSound.currentTime = 0;
-                beepSound.play();
-            }
-        }
+const gameDraw = () => {
+  msg.innerText = `Game was a Draw.`;
+  msg.style.fontSize = "100px"; // Reset font size
+  msgContainer.classList.remove("hide");
+  disableBoxes();
+};
 
-        // Function to toggle sound mute/unmute
-        function toggleSound() {
-            isSoundMuted = !isSoundMuted;
-        }
+const disableBoxes = () => {
+  for (let box of boxes) {
+    box.disabled = true;
+  }
+};
 
-        // Function to highlight the winning positions
-        function highlightWinningPositions(winningCombination) {
-            for (const index of winningCombination) {
-                const cell = board.children[index];
-                cell.classList.add("highlight");
-            }
-        }
+const enableBoxes = () => {
+  for (let box of boxes) {
+    box.disabled = false;
+    box.innerText = "";
+  }
+};
+
+const showWinner = (winner) => {
+  msg.innerText = `Congratulations, Winner is ${winner}`;
+  msg.style.fontSize = "100px"; // Initial font size
+  msgContainer.classList.remove("hide");
+  disableBoxes();
+
+
+  // Play a happy sound
+  let happySound = new Audio("happy.mp3");
+  happySound.play();
+};
+
+const checkWinner = () => {
+  for (let pattern of winPatterns) {
+    let pos1Val = boxes[pattern[0]].innerText;
+    let pos2Val = boxes[pattern[1]].innerText;
+    let pos3Val = boxes[pattern[2]].innerText;
+
+    if (pos1Val != "" && pos2Val != "" && pos3Val != "") {
+      if (pos1Val === pos2Val && pos2Val === pos3Val) {
+        showWinner(pos1Val);
+        return true;
+      }
+    }
+  }
+};
+
+newGameBtn.addEventListener("click", resetGame);
+resetBtn.addEventListener("click", resetGame);
